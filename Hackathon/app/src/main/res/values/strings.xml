@@ -1,6 +1,13 @@
 <resources>
     <string name="app_name">Hackathon</string>
 
-    <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="edit_message">What is your name?</string>
+    <string name="button_send">Say hi</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_display_message">My Message</string>
+    <string name="button_takepic">Take a selfie</string>
+    <string name="button_retakepic">Retake</string>
+
+
 </resources>
