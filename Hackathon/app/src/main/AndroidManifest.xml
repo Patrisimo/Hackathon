@@ -2,14 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="compatrisimohackathon.httpsgithub.hackathon" >
 
+    <uses-feature
+        android:name="android.hardware.camera2"
+        android:required="true" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".MyActivity"
-            android:label="@string/app_name" >
+            android:name=".MainPage"
+            android:label="@string/title_activity_main_page" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -17,16 +21,22 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".DisplayMessageActivity"
-            android:label="@string/title_activity_display_message"
-            android:parentActivityName=".MyActivity">
+            android:name=".MakeProfileActivity"
+            android:label="@string/app_name" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MyActivity" />
+                android:value=".MainPage" />
+
+        </activity>
+        <activity
+            android:name=".DisplayMessageActivity"
+            android:label="@string/title_activity_display_message"
+            android:parentActivityName=".MakeProfileActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MakeProfileActivity" />
         </activity>
 
     </application>
-    <uses-feature android:name="android.hardware.camera2"
-        android:required="true" />
 
 </manifest>

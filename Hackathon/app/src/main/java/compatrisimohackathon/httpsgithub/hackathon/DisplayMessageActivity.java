@@ -21,7 +21,7 @@ public class DisplayMessageActivity extends ActionBarActivity {
 
         // Get the message from the intent
         Intent intent = getIntent();
-        String message = intent.getStringExtra(MyActivity.EXTRA_MESSAGE);
+        String message = intent.getStringExtra(MakeProfileActivity.EXTRA_MESSAGE);
 
         if (message.equals("Terron")) {
             message = "No, your name is Terrón";

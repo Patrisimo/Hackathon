@@ -8,6 +8,11 @@
     <string name="title_activity_display_message">My Message</string>
     <string name="button_takepic">Take a selfie</string>
     <string name="button_retakepic">Retake</string>
+    <string name="title_activity_main_page">MainPage</string>
+    <string name="make_profile">Make Profile</string>
+    <string name="start">Start</string>
+
+    <string name="hello_world">Hello world!</string>
 
 
 </resources>

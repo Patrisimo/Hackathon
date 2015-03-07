@@ -2,7 +2,6 @@ package compatrisimohackathon.httpsgithub.hackathon;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -14,14 +13,14 @@ import android.widget.EditText;
 import android.widget.ImageView;
 
 
-public class MyActivity extends ActionBarActivity {
+public class MakeProfileActivity extends ActionBarActivity {
 
     public final static String EXTRA_MESSAGE = "compatrisimohackathon.MESSAGE";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_my);
+        setContentView(R.layout.activity_make_profile);
     }
 
 
@@ -47,8 +46,8 @@ public class MyActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /** Called when the user clicks the Send button */
-    public void sendMessage(View view) {
+    /** Called when the user clicks the Save Profile button */
+    public void saveProfile(View view) {
         Intent intent = new Intent(this, DisplayMessageActivity.class);
         EditText editText = (EditText) findViewById(R.id.edit_message);
         String message = editText.getText().toString();
@@ -82,6 +81,5 @@ public class MyActivity extends ActionBarActivity {
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
-
     }
 }

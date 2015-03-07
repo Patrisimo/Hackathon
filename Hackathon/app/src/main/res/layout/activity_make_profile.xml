@@ -43,5 +43,5 @@
         android:layout_height="wrap_content"
         android:text="@string/button_send"
         android:layout_gravity="bottom|center_horizontal"
-        android:onClick="sendMessage"/>
+        android:onClick="saveProfile"/>
 </LinearLayout>
