@@ -6,21 +6,29 @@
  */
 
 #include <pebble.h>
-
+#include <math.h>
+#include <stdlib.h>
+#include <assert.h>
+#include "brickbreaker.h"
+  
 #define BOX_SIZE 5
 #define TITLE_BAR_SIZE 16
 
-#define ANIM_DURATION 500
-#define ANIM_DELAY 300
+#define ANIM_DURATION 1
+#define ANIM_DELAY 0
 
 #define UP 0
 #define DOWN 1
-  
+
+#define SCREEN_WIDTH
+#define SCREEN_HEIGHT
+
 static Window *s_main_window;
 static InverterLayer *s_box_layer;
+static Layer *brick_layer;
 static PropertyAnimation *s_box_animation;
 
-static int s_current_stage = 0;
+
 
 // Function prototype 
 static void next_animation();
@@ -35,24 +43,56 @@ static void anim_stopped_handler(Animation *animation, bool finished, void *cont
   }
 }
 
+double speed = 4;
+
+Ball gBall;
+Ball paddle;
+BrickList *bricklist;
+int __errno;
+
+
+
+
 static void next_animation() {
   // Determine start and finish positions
   GRect start, finish;
-  switch (s_current_stage) {
-    case UP:
-      start = GRect(50, 20, BOX_SIZE, BOX_SIZE);
-      finish = GRect(50, 100, BOX_SIZE, BOX_SIZE);
-      break;
-    case DOWN:
-      start = GRect(50, 100, BOX_SIZE, BOX_SIZE);
-      finish = GRect(50,20, BOX_SIZE, BOX_SIZE);
-      break;
-    default:
-      start = GRect(50, 20, BOX_SIZE, BOX_SIZE);
-      finish = GRect(50, 100, BOX_SIZE, BOX_SIZE);
-      break;
+  int coll_res;
+  
+  start = GRect(gBall.x, gBall.y, gBall.dimx, gBall.dimy);
+  
+  double endX,endY;
+  endX =  (gBall.x + speed * gBall.dx / sqrt( gBall.dx * gBall.dx + gBall.dy * gBall.dy) );
+  endY =  (gBall.y + speed * gBall.dy / sqrt( gBall.dx * gBall.dx + (gBall.dy * gBall.dy)) );
+  
+  if (endX < 0 && gBall.dx < 0) {
+    gBall.dx = -1 * gBall.dx;
   }
-
+  if (endX > 144 - gBall.dimx && gBall.dx > 0) {
+    gBall.dx = -1 * gBall.dx;
+  }
+  if (endY < 0 && gBall.dy < 0) {
+    gBall.dy = -1 * gBall.dy;
+  }
+  if (endY > 168 - TITLE_BAR_SIZE - gBall.dimy && gBall.dy > 0) {
+    gBall.dy = -1 * gBall.dy;
+  }
+  
+  finish  = GRect((int) endX, (int) endY, gBall.dimx, gBall.dimy);
+  gBall.x = endX;
+  gBall.y = endY;
+  
+  // Check for collision with paddle
+  coll_res = has_struck(paddle, gBall);
+  if (coll_res) {
+    if (coll_res % 2)
+      gBall.dx = -1 * gBall.dx;
+    else
+      gBall.dy = -1 * gBall.dy;
+  }
+  
+  // Check for collision with bricks
+ check_bricks(bricklist, gBall);
+  
   // Schedule the next animation
   s_box_animation = property_animation_create_layer_frame(inverter_layer_get_layer(s_box_layer), &start, &finish);
   animation_set_duration((Animation*)s_box_animation, ANIM_DURATION);
@@ -64,21 +104,64 @@ static void next_animation() {
   animation_schedule((Animation*)s_box_animation);
 
   // Increment stage and wrap
-  s_current_stage = (s_current_stage + 1) % 2;
+  
+}
+
+
+
+
+static void brick_update_proc(Layer *this_layer, GContext *ctx) {
+  
+  
+  graphics_fill_rect(ctx, GRect(paddle.x, paddle.y, paddle.dimx, paddle.dimy), 0, GCornerNone);
+  
+  draw_bricks(bricklist, ctx);
+  
+  
+  
+}
+
+
+void setup_game() {
+  // Maybe 6 rows, 12 columns
+  int i,j;
+  if (bricklist == NULL)
+    bricklist = make_bricklist();
+  
+  for (i=0;i<6;i++) {
+    for (j=0;j<9;j++) {
+      bricklist = bricklist_add(bricklist, make_brick(12, 4, 15 + 14 * j, 5 + 6 * i));
+    }
+  }
+  
+  gBall = (Ball) {5, 5, 40.0, 43.0, 2, 5};
+  paddle = (Ball) {40, 5,  60, 140, 0, 0};
+
+  
 }
 
 static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
+  GRect window_bounds = layer_get_bounds(window_layer);
 
   // Create InverterLayer
   s_box_layer = inverter_layer_create(GRect(0, 0, BOX_SIZE, BOX_SIZE));
   layer_add_child(window_layer, inverter_layer_get_layer(s_box_layer));
+  
+  // Create BrickLayer
+  brick_layer = layer_create(GRect(0,0,window_bounds.size.w, window_bounds.size.h));
+  layer_add_child(window_layer, brick_layer);
+  layer_set_update_proc(brick_layer, brick_update_proc);
+  
+  setup_game();
+  
 }
 
 static void main_window_unload(Window *window) {
   // Destroy InverterLayer
   inverter_layer_destroy(s_box_layer);
 }
+
 
 static void init(void) {
   // Create main Window
@@ -88,6 +171,8 @@ static void init(void) {
     .unload = main_window_unload,
   });
   window_stack_push(s_main_window, true);
+  
+  
 
   // Start animation loop
   next_animation();
