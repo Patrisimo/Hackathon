@@ -43,7 +43,7 @@ static void anim_stopped_handler(Animation *animation, bool finished, void *cont
   }
 }
 
-double speed = 4;
+double speed = 2;
 
 Ball gBall;
 Ball paddle;
@@ -91,7 +91,7 @@ static void next_animation() {
   }
   
   // Check for collision with bricks
- check_bricks(bricklist, gBall);
+ check_bricks(bricklist, &gBall);
   
   // Schedule the next animation
   s_box_animation = property_animation_create_layer_frame(inverter_layer_get_layer(s_box_layer), &start, &finish);

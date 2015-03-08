@@ -77,10 +77,11 @@ BrickList *bricklist_remove(BrickList *list, Ball *remove) {
   if (curr == NULL)
     return list;
   if (curr->data == remove) {
+    temp = curr;
+    list->head = curr->next;
+    list->length--;
     free(curr->data);
     free(curr);
-    list->head = NULL;
-    list->length = 0;
     return list;
   }
   while ( curr->next != NULL ) {
@@ -107,23 +108,29 @@ Ball *make_brick(int dimx, int dimy, double x, double y) {
   return b;
 }
 
-void bounce(Ball ball, BrickList *bricklist, Ball *brick) {
-  int coll_res = has_struck(*brick, ball);
+int bounce(Ball *ball, BrickList *bricklist, Ball *brick) {
+  int coll_res = has_struck(*brick, *ball);
   if (coll_res) {
     if (coll_res % 2)
-      ball.dx = -1 * ball.dx;
+      ball->dx = -1 * ball->dx;
     else
-      ball.dy = -1 * ball.dy;
+      ball->dy = -1 * ball->dy;
     bricklist_remove(bricklist, brick);
+    return 1;
   }
+  else
+    return 0;
 }
 
-void check_bricks(BrickList *list, Ball ball) {
+void check_bricks(BrickList *list, Ball *ball) {
   BrickListNode *curr, *temp;
+  int bounced;
   curr = list->head;
   while (curr != NULL) {
     temp = curr->next;
-    bounce(ball, list, curr->data);    
+    bounced = bounce(ball, list, curr->data);    
+    if (bounced)
+      return;
     curr = temp;
   }
 }
