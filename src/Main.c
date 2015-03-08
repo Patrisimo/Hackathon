@@ -1,56 +1,83 @@
-#include <pebble.h>
-
-  /*
+/*
  * main.c
- * Creates a Window, Layer and assigns an `update_proc` to draw 
- * the 'P' in the Pebble logo.
+ * Creates a Window, InverterLayer and animates it around the screen 
+ * from corner to corner. It uses the `.stopped` callback to schedule the 
+ * next stage of the animation.
  */
 
 #include <pebble.h>
 
-  
+#define BOX_SIZE 5
+#define TITLE_BAR_SIZE 16
+
+#define ANIM_DURATION 500
+#define ANIM_DELAY 300
+
+#define UP 0
+#define DOWN 1
   
 static Window *s_main_window;
-static Layer *s_canvas_layer;
+static InverterLayer *s_box_layer;
+static PropertyAnimation *s_box_animation;
 
-int clock_num = 0;
+static int s_current_stage = 0;
 
-static void canvas_update_proc(Layer *this_layer, GContext *ctx) {
-  GRect bounds = layer_get_bounds(this_layer);
+// Function prototype 
+static void next_animation();
 
-  if ((clock_num / 5) % 0 ) {
-  // Get the center of the screen (non full-screen)
-  GPoint center = GPoint(bounds.size.w / 2, (bounds.size.h / 2));
+static void anim_stopped_handler(Animation *animation, bool finished, void *context) {
+  // Free the animation
+  property_animation_destroy(s_box_animation);
 
-  // Draw the 'loop' of the 'P'
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_circle(ctx, center, 40);
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_circle(ctx, center, 35);
-
-  // Draw the 'stalk'
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_rect(ctx, GRect(32, 40, 5, 100), 0, GCornerNone);
-  } else {
-    
+  // Schedule the next one, unless the app is exiting
+  if (finished) {
+    next_animation();
   }
+}
+
+static void next_animation() {
+  // Determine start and finish positions
+  GRect start, finish;
+  switch (s_current_stage) {
+    case UP:
+      start = GRect(50, 20, BOX_SIZE, BOX_SIZE);
+      finish = GRect(50, 100, BOX_SIZE, BOX_SIZE);
+      break;
+    case DOWN:
+      start = GRect(50, 100, BOX_SIZE, BOX_SIZE);
+      finish = GRect(50,20, BOX_SIZE, BOX_SIZE);
+      break;
+    default:
+      start = GRect(50, 20, BOX_SIZE, BOX_SIZE);
+      finish = GRect(50, 100, BOX_SIZE, BOX_SIZE);
+      break;
+  }
+
+  // Schedule the next animation
+  s_box_animation = property_animation_create_layer_frame(inverter_layer_get_layer(s_box_layer), &start, &finish);
+  animation_set_duration((Animation*)s_box_animation, ANIM_DURATION);
+  animation_set_delay((Animation*)s_box_animation, ANIM_DELAY);
+  animation_set_curve((Animation*)s_box_animation, AnimationCurveEaseInOut);
+  animation_set_handlers((Animation*)s_box_animation, (AnimationHandlers) {
+    .stopped = anim_stopped_handler
+  }, NULL);
+  animation_schedule((Animation*)s_box_animation);
+
+  // Increment stage and wrap
+  s_current_stage = (s_current_stage + 1) % 2;
 }
 
 static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
-  GRect window_bounds = layer_get_bounds(window_layer);
 
-  // Create Layer
-  s_canvas_layer = layer_create(GRect(0, 0, window_bounds.size.w, window_bounds.size.h));
-  layer_add_child(window_layer, s_canvas_layer);
-
-  // Set the update_proc
-  layer_set_update_proc(s_canvas_layer, canvas_update_proc);
+  // Create InverterLayer
+  s_box_layer = inverter_layer_create(GRect(0, 0, BOX_SIZE, BOX_SIZE));
+  layer_add_child(window_layer, inverter_layer_get_layer(s_box_layer));
 }
 
 static void main_window_unload(Window *window) {
-  // Destroy Layer
-  layer_destroy(s_canvas_layer);
+  // Destroy InverterLayer
+  inverter_layer_destroy(s_box_layer);
 }
 
 static void init(void) {
@@ -61,9 +88,15 @@ static void init(void) {
     .unload = main_window_unload,
   });
   window_stack_push(s_main_window, true);
+
+  // Start animation loop
+  next_animation();
 }
 
 static void deinit(void) {
+  // Stop any animation in progress
+  animation_unschedule_all();
+
   // Destroy main Window
   window_destroy(s_main_window);
 }
