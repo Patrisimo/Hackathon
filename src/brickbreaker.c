@@ -1,4 +1,3 @@
-#include <pebble.h>
 #include "brickbreaker.h"
 
 double max(double a, double b) {
@@ -6,6 +5,12 @@ double max(double a, double b) {
 }
 double min(double a, double b) {
   return a < b ? a : b;
+}
+double min_nonneg(double a, double b) {
+  if (b < 0)
+    return a;
+  else
+    return a < b ? a : b;
 }
 
 typedef struct BrickListNode {
@@ -122,17 +127,21 @@ int bounce(Ball *ball, BrickList *bricklist, Ball *brick) {
     return 0;
 }
 
-void check_bricks(BrickList *list, Ball *ball) {
+double check_bricks(BrickList *list, Ball *ball) {
   BrickListNode *curr, *temp;
-  int bounced;
+  double min_time, time;
   curr = list->head;
+  min_time = -1;
   while (curr != NULL) {
     temp = curr->next;
-    bounced = bounce(ball, list, curr->data);    
-    if (bounced)
-      return;
+    time = time2impact(*ball, *(curr->data));
+    if ( (min_time <0) || ( time > 0 && time < min_time ) ) {
+      min_time = time;
+    }
+    bounce(ball, list, curr->data);
     curr = temp;
   }
+  return min_time;
 }
 
 GRect draw_rectangle(Ball *brick) {
@@ -147,4 +156,67 @@ void draw_bricks(BrickList *list, GContext *ctx) {
   }
 }
   
+double time2impact(Ball ball, Ball brick) {
+  // Can reduce case to two sides
+//  int vert_size, horz_size;
+  double v_time, h_time, time, next;
+  Point   b_vert, /* base point of the vertical face of the ball */ 
+          b_horz, /* base point of the horizontal face of the ball */
+          vert_face, /* base point of the vertical face of the brick */
+          horz_face; /* base point of the horizontal face of the brick */
   
+  time = -1; // Initialize to false
+  v_time = -1;
+  h_time = -1;
+  
+  if (ball.dx > 0) { // Heading right
+    vert_face.x = brick.x;
+    b_vert.x = ball.x + ball.dimx;
+  } else {
+    vert_face.x = brick.x + brick.dimx;
+    b_vert.x = ball.x;
+  }
+  vert_face.y = brick.y;
+  b_vert.y = ball.y;
+  
+  if (ball.dy > 0) { // Heading down
+    horz_face.y = brick.y;
+    b_horz.y = ball.y + ball.dimy;
+  } else {
+    horz_face.y = brick.y + brick.dimy;
+    b_horz.y = ball.y;
+  }
+  horz_face.x = brick.x;
+  b_horz.x = ball.x;
+  
+  // Find the time to intersect the vertical face
+  // i.e., when the ball's x coordinate is equal to the face's x coordinate, and
+  // when the faces overlap
+  if ( ball.dx != 0 ) {
+    v_time = (vert_face.x - b_vert.x) / ball.dx;
+  } 
+  // Check for actual hit if intersection happens in the future
+  if (v_time > 0) { // Only want future hits
+    next = b_vert.y + (v_time * ball.dy);
+    if ( (next <= vert_face.y + brick.dimy) && (next + ball.dimy >= vert_face.y) ) {
+      time = v_time; // Set time
+    }
+  }
+  
+  // Find the time to intersect the horizontal face
+  // i.e., when the ball's y coordinate is equal to the face's y coordinate, and
+  // when the faces overlap
+  if ( ball.dy != 0 ) {
+    h_time = (horz_face.y - b_horz.y) / ball.dy;
+  } 
+  // Check for actual hit if intersection happens in the future
+  if (h_time > 0 && h_time < time) { // Only want future, and sooner, hits
+    next = b_horz.x + (h_time * ball.dx);
+    if ( (next <= horz_face.x + brick.dimx) && (next + ball.dimx >= horz_face.x) ) {
+      time = h_time; // Set time
+    }
+  }
+  
+  
+  return time;
+}

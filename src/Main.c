@@ -8,6 +8,7 @@
 #include <pebble.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include "brickbreaker.h"
   
@@ -43,10 +44,11 @@ static void anim_stopped_handler(Animation *animation, bool finished, void *cont
   }
 }
 
-double speed = 2;
+double speed = 5;
 
 Ball gBall;
 Ball paddle;
+Ball top, left, right, bottom;
 BrickList *bricklist;
 int __errno;
 
@@ -57,12 +59,36 @@ static void next_animation() {
   // Determine start and finish positions
   GRect start, finish;
   int coll_res;
+  double time;
+  double endX,endY;
+  int dx, dy;
   
   start = GRect(gBall.x, gBall.y, gBall.dimx, gBall.dimy);
+  dx = gBall.dx;
+  dy = gBall.dy;
   
-  double endX,endY;
-  endX =  (gBall.x + speed * gBall.dx / sqrt( gBall.dx * gBall.dx + gBall.dy * gBall.dy) );
-  endY =  (gBall.y + speed * gBall.dy / sqrt( gBall.dx * gBall.dx + (gBall.dy * gBall.dy)) );
+  
+  // Check for collision with paddle
+  coll_res = has_struck(paddle, gBall);
+  if (coll_res) {
+    if (coll_res % 2)
+      gBall.dx = -1 * gBall.dx;
+    else
+      gBall.dy = -1 * gBall.dy;
+  }
+  
+  // Check for collision with bricks, find next collision time
+  time = check_bricks(bricklist, &gBall);
+  time = min_nonneg(time, time2impact(top, gBall));
+  time = min_nonneg(time, time2impact(left, gBall));
+  time = min_nonneg(time, time2impact(right, gBall));
+  time = min_nonneg(time, time2impact(bottom, gBall));
+  
+  app_log(APP_LOG_LEVEL_INFO, "Main.c", 87, "Time to next bounce: %f\n", time);
+  time = time + 2;
+  
+  endX =  (gBall.x + time * dx / sqrt( dx * dx + (dy * dy)) );
+  endY =  (gBall.y + time * dy / sqrt( dx * dx + (dy * dy)) );
   
   if (endX < 0 && gBall.dx < 0) {
     gBall.dx = -1 * gBall.dx;
@@ -81,21 +107,11 @@ static void next_animation() {
   gBall.x = endX;
   gBall.y = endY;
   
-  // Check for collision with paddle
-  coll_res = has_struck(paddle, gBall);
-  if (coll_res) {
-    if (coll_res % 2)
-      gBall.dx = -1 * gBall.dx;
-    else
-      gBall.dy = -1 * gBall.dy;
-  }
   
-  // Check for collision with bricks
- check_bricks(bricklist, &gBall);
   
   // Schedule the next animation
   s_box_animation = property_animation_create_layer_frame(inverter_layer_get_layer(s_box_layer), &start, &finish);
-  animation_set_duration((Animation*)s_box_animation, ANIM_DURATION);
+  animation_set_duration((Animation*)s_box_animation, (int) time + 1);
   animation_set_delay((Animation*)s_box_animation, ANIM_DELAY);
   animation_set_curve((Animation*)s_box_animation, AnimationCurveEaseInOut);
   animation_set_handlers((Animation*)s_box_animation, (AnimationHandlers) {
@@ -130,12 +146,17 @@ void setup_game() {
   
   for (i=0;i<6;i++) {
     for (j=0;j<9;j++) {
-      bricklist = bricklist_add(bricklist, make_brick(12, 4, 15 + 14 * j, 5 + 6 * i));
+      bricklist = bricklist_add(bricklist, make_brick(12, 4, 10 + 14 * j, 5 + 6 * i));
     }
   }
   
   gBall = (Ball) {5, 5, 40.0, 43.0, 2, 5};
   paddle = (Ball) {40, 5,  60, 140, 0, 0};
+  
+  top = (Ball) {144, 0, 0, 0, 0, 0};
+  bottom = (Ball) {144, 0, 0, 168 - TITLE_BAR_SIZE, 0, 0};
+  left = (Ball) {0, 168 - TITLE_BAR_SIZE, 0, 0, 0, 0};
+  right = (Ball) {0, 168 - TITLE_BAR_SIZE, 144, 0, 0, 0};
 
   
 }
